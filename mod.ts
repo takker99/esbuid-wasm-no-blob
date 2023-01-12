@@ -1,4 +1,5 @@
-/** esbuild-wasm@0.16.17
+/** @license
+ * esbuild-wasm@0.16.17
  *
  * MIT License
  *
