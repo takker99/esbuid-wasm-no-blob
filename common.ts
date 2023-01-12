@@ -110,6 +110,11 @@ let mustBeStringOrUint8Array = (
     ? null
     : "a string or a Uint8Array";
 
+let mustBeStringOrURL = (value: string | URL | undefined): string | null =>
+  typeof value === "string" || value instanceof URL
+    ? null
+    : "a string or a URL";
+
 type OptionKeys = { [key: string]: boolean };
 
 function getFlag<T, K extends (keyof T & string)>(
@@ -142,15 +147,17 @@ export function validateInitializeOptions(
   options: types.InitializeOptions,
 ): types.InitializeOptions {
   let keys: OptionKeys = Object.create(null);
+  let workerURL = getFlag(options, keys, "workerURL", mustBeStringOrURL)!;
   let wasmModule = getFlag(
     options,
     keys,
     "wasmModule",
     mustBeWebAssemblyModule,
-  );
+  )!;
+
   checkForInvalidFlags(options, keys, "in initialize() call");
   return {
-    workerURL: options.workerURL,
+    workerURL,
     wasmModule,
   };
 }
