@@ -2,25 +2,16 @@
 
 import { ESBUILD_VERSION } from "../version.ts";
 import { build, stop } from "https://deno.land/x/esbuild@v0.16.17/wasm.js";
+import { bundle } from "https://deno.land/x/emit@0.13.0/mod.ts";
 
-const wasmExec = await (async () => {
-  const res = await fetch(
-    `https://cdn.jsdelivr.net/npm/esbuild-wasm@${ESBUILD_VERSION}/wasm_exec.js`,
-  );
-  if (!res.ok) {
-    throw Error(`${res.status} ${res.statusText} at "${res.url}"`);
-  }
-  return await res.text();
-})();
-const worker = await (async () => {
-  const res = await fetch(
-    `https://raw.githubusercontent.com/evanw/esbuild/v${ESBUILD_VERSION}/lib/shared/worker.ts`,
-  );
-  if (!res.ok) {
-    throw Error(`${res.status} ${res.statusText} at "${res.url}"`);
-  }
-  return await res.text();
-})();
+const res = await fetch(
+  `https://cdn.jsdelivr.net/npm/esbuild-wasm@${ESBUILD_VERSION}/wasm_exec.js`,
+);
+if (!res.ok) {
+  throw Error(`${res.status} ${res.statusText} at "${res.url}"`);
+}
+const wasmExec = await res.text();
+const worker = (await bundle(new URL("../worker.ts", import.meta.url))).code;
 
 const contents = `
 /** @license
@@ -43,11 +34,6 @@ for (let o = self; o; o = Object.getPrototypeOf(o))
 
 ${wasmExec.replace(/\bfs\./g, "globalThis.fs.")}
 ${worker}`;
-
-// await Deno.writeTextFile(
-//   new URL("../worker.ts", import.meta.url),
-//   contents,
-// );
 
 const result = await build({
   stdin: {

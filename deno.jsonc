@@ -1,5 +1,5 @@
 {
   "tasks":{
-    "worker":"deno run --allow-write --allow-net=cdn.jsdelivr.net,raw.githubusercontent.com,deno.land scripts/makeWorkerCode.ts"
+    "worker":"deno run --allow-write=./worker.min.js --allow-read --allow-env --allow-net=cdn.jsdelivr.net,deno.land scripts/makeWorkerCode.ts"
   }
 }
