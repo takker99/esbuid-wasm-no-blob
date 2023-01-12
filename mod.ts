@@ -16,7 +16,6 @@
 
 import * as types from "./types.ts";
 import * as common from "./common.ts";
-import * as ourselves from "./mod.ts";
 import { ESBUILD_VERSION } from "./version.ts";
 
 export const version = ESBUILD_VERSION;
@@ -111,7 +110,15 @@ const startRunningService = async (
     },
     isSync: false,
     isWriteUnavailable: true,
-    esbuild: ourselves,
+
+    esbuild: {
+      build,
+      transform,
+      formatMessages,
+      analyzeMetafile,
+      version,
+      initialize,
+    },
   });
 
   // This will throw if WebAssembly module instantiation fails
