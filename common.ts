@@ -20,8 +20,7 @@
 
 import type * as types from "./types.ts";
 import * as protocol from "./stdio_protocol.ts";
-
-declare const ESBUILD_VERSION: string;
+import { ESBUILD_VERSION } from "./version.ts";
 
 const quote: (x: string) => string = JSON.stringify;
 
