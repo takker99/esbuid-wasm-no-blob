@@ -1,5 +1,5 @@
 /** @license
- * esbuild-wasm@0.16.17
+ * esbuild-wasm@v0.19.3
  *
  * MIT License
  *
@@ -21,33 +21,23 @@ import { ESBUILD_VERSION } from "./version.ts";
 
 export const version = ESBUILD_VERSION;
 
-// @ts-ignore type error caused by function overload
-export const build: typeof types.build = (
-  options: types.BuildOptions,
-) => ensureServiceIsRunning().then((service) => service.build(options));
+export const build: typeof types.build = (options: types.BuildOptions) =>
+  ensureServiceIsRunning().build(options);
 
-export const transform: typeof types.transform = (input, options) =>
-  ensureServiceIsRunning().then((service) => service.transform(input, options));
+export const transform: typeof types.transform = (
+  input: string | Uint8Array,
+  options?: types.TransformOptions,
+) => ensureServiceIsRunning().transform(input, options);
 
 export const formatMessages: typeof types.formatMessages = (
   messages,
   options,
-) =>
-  ensureServiceIsRunning().then((service) =>
-    service.formatMessages(messages, options)
-  );
+) => ensureServiceIsRunning().formatMessages(messages, options);
 
 export const analyzeMetafile: typeof types.analyzeMetafile = (
   metafile,
   options,
-) =>
-  ensureServiceIsRunning().then((service) =>
-    service.analyzeMetafile(metafile, options)
-  );
-
-export const stop = () => {
-  if (stopService) stopService();
-};
+) => ensureServiceIsRunning().analyzeMetafile(metafile, options);
 
 interface Service {
   build: typeof types.build;
@@ -56,36 +46,43 @@ interface Service {
   analyzeMetafile: typeof types.analyzeMetafile;
 }
 
-let initializePromise: Promise<Service> | undefined;
-let stopService: (() => void) | undefined;
+let initializePromise: Promise<void> | undefined;
+let longLivedService: Service | undefined;
 
-const ensureServiceIsRunning = (): Promise<Service> => {
-  if (!initializePromise) {
-    throw new Error('You must call "initialize"');
+const ensureServiceIsRunning = (): Service => {
+  if (longLivedService) return longLivedService;
+  if (initializePromise) {
+    throw new Error(
+      'You need to wait for the promise returned from "initialize" to be resolved before calling this',
+    );
   }
-  return initializePromise;
+  throw new Error('You need to call "initialize" before calling this');
 };
 
-export const initialize: typeof types.initialize = async (options) => {
+export const initialize: typeof types.initialize = (options) => {
   options = common.validateInitializeOptions(options || {});
+  const wasmModule = options.wasmModule;
+  const workerURL = options.workerURL;
+  if (!wasmModule) {
+    throw new Error(
+      'Must provide the "wasmModule" option',
+    );
+  }
   if (initializePromise) {
     throw new Error('Cannot call "initialize" more than once');
   }
-  initializePromise = startRunningService(
-    options.wasmModule,
-    options.workerURL,
-  );
+  initializePromise = startRunningService(wasmModule, workerURL);
   initializePromise.catch(() => {
     // Let the caller try again if this fails
     initializePromise = void 0;
   });
-  await initializePromise;
+  return initializePromise;
 };
 
 const startRunningService = async (
   wasmModule: WebAssembly.Module | undefined,
   workerURL: string | URL,
-): Promise<Service> => {
+): Promise<void> => {
   // Run esbuild off the main thread
   const worker = new Worker(workerURL.toString());
 
@@ -110,8 +107,7 @@ const startRunningService = async (
       worker.postMessage(bytes);
     },
     isSync: false,
-    isWriteUnavailable: true,
-
+    hasFS: false,
     esbuild: {
       build,
       transform,
@@ -125,20 +121,12 @@ const startRunningService = async (
   // This will throw if WebAssembly module instantiation fails
   await firstMessagePromise;
 
-  stopService = () => {
-    worker.terminate();
-    initializePromise = undefined;
-    stopService = undefined;
-  };
-
-  return {
-    // @ts-ignore type error caused by function overload
+  longLivedService = {
     build: (options: types.BuildOptions) =>
       new Promise<types.BuildResult>((resolve, reject) =>
-        service.buildOrServe({
+        service.buildOrContext({
           callName: "build",
           refs: null,
-          serveOptions: null,
           options,
           isTTY: false,
           defaultWD: "/",
@@ -146,8 +134,9 @@ const startRunningService = async (
             err ? reject(err) : resolve(res as types.BuildResult),
         })
       ),
-    transform: (input, options) =>
-      new Promise((resolve, reject) =>
+
+    transform: (input: string | Uint8Array, options?: types.TransformOptions) =>
+      new Promise<types.TransformResult>((resolve, reject) =>
         service.transform({
           callName: "transform",
           refs: null,
@@ -165,6 +154,7 @@ const startRunningService = async (
           callback: (err, res) => err ? reject(err) : resolve(res!),
         })
       ),
+
     formatMessages: (messages, options) =>
       new Promise((resolve, reject) =>
         service.formatMessages({
@@ -175,6 +165,7 @@ const startRunningService = async (
           callback: (err, res) => err ? reject(err) : resolve(res!),
         })
       ),
+
     analyzeMetafile: (metafile, options) =>
       new Promise((resolve, reject) =>
         service.analyzeMetafile({
