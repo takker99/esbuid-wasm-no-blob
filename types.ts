@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any
-/** esbuild-wasm@v0.19.2
+/** esbuild-wasm@v0.20.1
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.19.2/lib/shared/types.ts and modified below:
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/types.ts and modified below:
 // - $ deno fmt
 // - remove functions not worked in browser
 
@@ -499,6 +499,7 @@ export interface OnLoadArgs {
   namespace: string;
   suffix: string;
   pluginData: any;
+  with: Record<string, string>;
 }
 
 /** Documentation: https://esbuild.github.io/plugins/#on-load-results */
@@ -541,8 +542,10 @@ export interface Metafile {
         kind: ImportKind;
         external?: boolean;
         original?: string;
+        with?: Record<string, string>;
       }[];
       format?: "cjs" | "esm";
+      with?: Record<string, string>;
     };
   };
   outputs: {
@@ -688,3 +691,19 @@ export interface InitializeOptions {
 }
 
 export let version: string;
+
+// Call this function to terminate esbuild's child process. The child process
+// is not terminated and re-created after each API call because it's more
+// efficient to keep it around when there are multiple API calls. This child
+// process normally exits automatically when the parent process exits, so you
+// usually don't need to call this function.
+//
+// One reason you might want to call this is if you know you will not make any
+// more esbuild API calls and you want to clean up resources (since the esbuild
+// child process takes up some memory even when idle).
+//
+// Another reason you might want to call this is if you are using esbuild from
+// within a Deno test. Deno fails tests that create a child process without
+// killing it before the test ends, so you have to call this function (and
+// await the returned promise) in every Deno test that uses esbuild.
+export declare function stop(): Promise<void>;
