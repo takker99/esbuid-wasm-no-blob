@@ -1,5 +1,5 @@
 /** @license
- * esbuild-wasm@v0.19.3
+ * esbuild-wasm@v0.20.1
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.16.17/lib/shared/common.ts and modified below
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/common.ts and modified below
 // - $ deno fmt
 // - load the worker code from URL instead of an embedded code
 
@@ -19,6 +19,9 @@ import * as types from "./types.ts";
 import * as common from "./common.ts";
 import { ESBUILD_VERSION } from "./version.ts";
 
+interface Go {
+  _scheduledTimeouts: Map<number, ReturnType<typeof setTimeout>>;
+}
 export const version = ESBUILD_VERSION;
 
 export const build: typeof types.build = (options: types.BuildOptions) =>
@@ -39,6 +42,11 @@ export const analyzeMetafile: typeof types.analyzeMetafile = (
   options,
 ) => ensureServiceIsRunning().analyzeMetafile(metafile, options);
 
+export const stop = () => {
+  if (stopService) stopService();
+  return Promise.resolve();
+};
+
 interface Service {
   build: typeof types.build;
   transform: typeof types.transform;
@@ -47,6 +55,7 @@ interface Service {
 }
 
 let initializePromise: Promise<void> | undefined;
+let stopService: (() => void) | undefined;
 let longLivedService: Service | undefined;
 
 const ensureServiceIsRunning = (): Service => {
@@ -120,6 +129,12 @@ const startRunningService = async (
 
   // This will throw if WebAssembly module instantiation fails
   await firstMessagePromise;
+  stopService = () => {
+    worker.terminate();
+    initializePromise = undefined;
+    stopService = undefined;
+    longLivedService = undefined;
+  };
 
   longLivedService = {
     build: (options: types.BuildOptions) =>

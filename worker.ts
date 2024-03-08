@@ -3,7 +3,7 @@
 /// <reference lib="deno.worker" />
 
 /** @license
- * esbuild-wasm@0.19.2
+ * esbuild-wasm@0.20.1
  *
  * MIT License
  *
@@ -16,5 +16,5 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-import "https://raw.githubusercontent.com/golang/go/go1.20.7/misc/wasm/wasm_exec.js";
-import "https://raw.githubusercontent.com/evanw/esbuild/v0.19.1/lib/shared/worker.ts";
+import "https://raw.githubusercontent.com/golang/go/go1.20.12/misc/wasm/wasm_exec.js";
+import "https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/worker.ts";

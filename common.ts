@@ -1,5 +1,5 @@
 // deno-lint-ignore-file prefer-const ban-types no-explicit-any no-empty no-unused-vars
-/** esbuild-wasm@0.19.2
+/** esbuild-wasm@0.20.1
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.16.17/lib/shared/common.ts and modified below
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/common.ts and modified below
 // - $ deno fmt
 // - load the worker code from URL instead of an embedded code
 // - remove functions not worked in browser
@@ -836,12 +836,17 @@ export function createChannel(streamIn: StreamIn): StreamOut {
 
       if (typeof request.key === "number") {
         const requestCallbacks = requestCallbacksByKey[request.key];
-        if (requestCallbacks) {
-          const callback = requestCallbacks[request.command];
-          if (callback) {
-            await callback(id, request);
-            return;
-          }
+        if (!requestCallbacks) {
+          // Ignore invalid commands for old builds that no longer exist.
+          // This can happen when "context.cancel" and "context.dispose"
+          // is called while esbuild is processing many files in parallel.
+          // See https://github.com/evanw/esbuild/issues/3318 for details.
+          return;
+        }
+        const callback = requestCallbacks[request.command];
+        if (callback) {
+          await callback(id, request);
+          return;
         }
       }
 
@@ -1078,7 +1083,6 @@ export function createChannel(streamIn: StreamIn): StreamOut {
   let formatMessages: StreamService["formatMessages"] = (
     { callName, refs, messages, options, callback },
   ) => {
-    let result = sanitizeMessages(messages, "messages", null, "");
     if (!options) {
       throw new Error(`Missing second argument in ${callName}() call`);
     }
@@ -1097,7 +1101,7 @@ export function createChannel(streamIn: StreamIn): StreamOut {
     }
     let request: protocol.FormatMsgsRequest = {
       command: "format-msgs",
-      messages: result,
+      messages: sanitizeMessages(messages, "messages", null, "", terminalWidth),
       isWarning: kind === "warning",
     };
     if (color !== void 0) request.color = color;
@@ -1886,12 +1890,18 @@ let handlePlugins = async (
 
           if (errors != null) {
             response.errors!.push(
-              ...sanitizeMessages(errors, "errors", details, name),
+              ...sanitizeMessages(errors, "errors", details, name, undefined),
             );
           }
           if (warnings != null) {
             response.warnings!.push(
-              ...sanitizeMessages(warnings, "warnings", details, name),
+              ...sanitizeMessages(
+                warnings,
+                "warnings",
+                details,
+                name,
+                undefined,
+              ),
             );
           }
         }
@@ -1958,7 +1968,13 @@ let handlePlugins = async (
             response.pluginData = details.store(pluginData);
           }
           if (errors != null) {
-            response.errors = sanitizeMessages(errors, "errors", details, name);
+            response.errors = sanitizeMessages(
+              errors,
+              "errors",
+              details,
+              name,
+              undefined,
+            );
           }
           if (warnings != null) {
             response.warnings = sanitizeMessages(
@@ -1966,6 +1982,7 @@ let handlePlugins = async (
               "warnings",
               details,
               name,
+              undefined,
             );
           }
           if (watchFiles != null) {
@@ -1999,6 +2016,7 @@ let handlePlugins = async (
           namespace: request.namespace,
           suffix: request.suffix,
           pluginData: details.load(request.pluginData),
+          with: request.with,
         });
 
         if (result != null) {
@@ -2042,7 +2060,13 @@ let handlePlugins = async (
           }
           if (loader != null) response.loader = loader;
           if (errors != null) {
-            response.errors = sanitizeMessages(errors, "errors", details, name);
+            response.errors = sanitizeMessages(
+              errors,
+              "errors",
+              details,
+              name,
+              undefined,
+            );
           }
           if (warnings != null) {
             response.warnings = sanitizeMessages(
@@ -2050,6 +2074,7 @@ let handlePlugins = async (
               "warnings",
               details,
               name,
+              undefined,
             );
           }
           if (watchFiles != null) {
@@ -2106,7 +2131,13 @@ let handlePlugins = async (
               );
 
               if (errors != null) {
-                newErrors = sanitizeMessages(errors, "errors", details, name);
+                newErrors = sanitizeMessages(
+                  errors,
+                  "errors",
+                  details,
+                  name,
+                  undefined,
+                );
               }
               if (warnings != null) {
                 newWarnings = sanitizeMessages(
@@ -2114,6 +2145,7 @@ let handlePlugins = async (
                   "warnings",
                   details,
                   name,
+                  undefined,
                 );
               }
             }
@@ -2362,6 +2394,7 @@ function replaceDetailsInMessages(
 function sanitizeLocation(
   location: types.PartialMessage["location"],
   where: string,
+  terminalWidth: number | undefined,
 ): types.Message["location"] {
   if (location == null) return null;
 
@@ -2374,6 +2407,34 @@ function sanitizeLocation(
   let lineText = getFlag(location, keys, "lineText", mustBeString);
   let suggestion = getFlag(location, keys, "suggestion", mustBeString);
   checkForInvalidFlags(location, keys, where);
+
+  // Performance hack: Some people pass enormous minified files as the line
+  // text with a column near the beginning of the line and then complain
+  // when this function is slow. The slowness comes from serializing a huge
+  // string. But the vast majority of that string is unnecessary. Try to
+  // detect when this is the case and trim the string before serialization
+  // to avoid the performance hit. See: https://github.com/evanw/esbuild/issues/3467
+  if (lineText) {
+    // Try to conservatively guess the maximum amount of relevant text
+    const relevantASCII = lineText.slice(
+      0,
+      (column && column > 0 ? column : 0) +
+        (length && length > 0 ? length : 0) +
+        (terminalWidth && terminalWidth > 0 ? terminalWidth : 80),
+    );
+
+    // Make sure it's ASCII (so the byte-oriented column and length values
+    // are correct) and that there are no newlines (so that our logging code
+    // doesn't look at the end of the string)
+    if (!/[\x7F-\uFFFF]/.test(relevantASCII) && !/\n/.test(lineText)) {
+      lineText = relevantASCII;
+    }
+  }
+
+  // Note: We could technically make this even faster by maintaining two copies
+  // of this code, one in Go and one in TypeScript. But I'm not going to do that.
+  // The point of this function is to call into the real Go code to get what it
+  // does. If someone wants a JS version, they can port it themselves.
 
   return {
     file: file || "",
@@ -2391,6 +2452,7 @@ function sanitizeMessages(
   property: string,
   stash: ObjectStash | null,
   fallbackPluginName: string,
+  terminalWidth: number | undefined,
 ): types.Message[] {
   let messagesClone: types.Message[] = [];
   let index = 0;
@@ -2420,7 +2482,7 @@ function sanitizeMessages(
         checkForInvalidFlags(note, noteKeys, where);
         notesClone.push({
           text: noteText || "",
-          location: sanitizeLocation(noteLocation, where),
+          location: sanitizeLocation(noteLocation, where, terminalWidth),
         });
       }
     }
@@ -2429,7 +2491,7 @@ function sanitizeMessages(
       id: id || "",
       pluginName: pluginName || fallbackPluginName,
       text: text || "",
-      location: sanitizeLocation(location, where),
+      location: sanitizeLocation(location, where, terminalWidth),
       notes: notesClone,
       detail: stash ? stash.store(detail) : -1,
     });
