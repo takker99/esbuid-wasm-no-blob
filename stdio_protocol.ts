@@ -1,5 +1,5 @@
 // deno-lint-ignore-file
-/** esbuild-wasm@0.20.1
+/** esbuild-wasm@0.21.4
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/stdio_protocol.ts
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.21.4/lib/shared/stdio_protocol.ts
 
 // The JavaScript API communicates with the Go child process over stdin/stdout
 // using this protocol. It's a very simple binary protocol that uses primitives
@@ -185,6 +185,7 @@ export interface ResolveRequest {
   resolveDir?: string;
   kind?: string;
   pluginData?: number;
+  with?: Record<string, string>;
 }
 
 export interface ResolveResponse {
@@ -209,6 +210,7 @@ export interface OnResolveRequest {
   resolveDir: string;
   kind: types.ImportKind;
   pluginData: number;
+  with: Record<string, string>;
 }
 
 export interface OnResolveResponse {
