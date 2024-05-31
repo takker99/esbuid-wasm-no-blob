@@ -1,7 +1,7 @@
 // cf. https://github.com/evanw/esbuild/blob/d751dfb82002d332aa4dbfa89c74d25203d28123/scripts/esbuild.js#L85-L107
 
-import { build, stop } from "https://deno.land/x/esbuild@v0.17.19/mod.js";
-import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.8.1/mod.ts";
+import { build, stop } from "https://deno.land/x/esbuild@v0.20.0/mod.js";
+import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.9.0/mod.ts";
 import { ESBUILD_VERSION } from "../version.ts";
 
 const { outputFiles } = await build({
@@ -27,4 +27,4 @@ for (const file of ["mod.js", "worker.js"]) {
   );
 }
 
-stop();
+await stop();

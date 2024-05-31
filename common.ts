@@ -1,5 +1,5 @@
 // deno-lint-ignore-file prefer-const ban-types no-explicit-any no-empty no-unused-vars
-/** esbuild-wasm@0.20.1
+/** esbuild-wasm@0.21.4
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.20.1/lib/shared/common.ts and modified below
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.21.4/lib/shared/common.ts and modified below
 // - $ deno fmt
 // - load the worker code from URL instead of an embedded code
 // - remove functions not worked in browser
@@ -1707,6 +1707,7 @@ let handlePlugins = async (
         let resolveDir = getFlag(options, keys, "resolveDir", mustBeString);
         let kind = getFlag(options, keys, "kind", mustBeString);
         let pluginData = getFlag(options, keys, "pluginData", canBeAnything);
+        let importAttributes = getFlag(options, keys, "with", mustBeObject);
         checkForInvalidFlags(options, keys, "in resolve() call");
 
         return new Promise((resolve, reject) => {
@@ -1724,6 +1725,9 @@ let handlePlugins = async (
           else throw new Error(`Must specify "kind" when calling "resolve"`);
           if (pluginData != null) {
             request.pluginData = details.store(pluginData);
+          }
+          if (importAttributes != null) {
+            request.with = sanitizeStringMap(importAttributes, "with");
           }
 
           sendRequest<protocol.ResolveRequest, protocol.ResolveResponse>(
@@ -1929,6 +1933,7 @@ let handlePlugins = async (
           resolveDir: request.resolveDir,
           kind: request.kind,
           pluginData: details.load(request.pluginData),
+          with: request.with,
         });
 
         if (result != null) {
@@ -2508,6 +2513,23 @@ function sanitizeStringArray(values: any[], property: string): string[] {
       throw new Error(`${quote(property)} must be an array of strings`);
     }
     result.push(value);
+  }
+  return result;
+}
+
+function sanitizeStringMap(
+  map: Record<string, any>,
+  property: string,
+): Record<string, string> {
+  const result: Record<string, string> = Object.create(null);
+  for (const key in map) {
+    const value = map[key];
+    if (typeof value !== "string") {
+      throw new Error(
+        `key ${quote(key)} in object ${quote(property)} must be a string`,
+      );
+    }
+    result[key] = value;
   }
   return result;
 }
