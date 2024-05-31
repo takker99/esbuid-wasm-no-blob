@@ -93,7 +93,7 @@ const startRunningService = async (
   workerURL: string | URL,
 ): Promise<void> => {
   // Run esbuild off the main thread
-  const worker = new Worker(workerURL.toString());
+  const worker = new Worker(workerURL.toString(), { type: "module" });
 
   let firstMessageResolve: (value: void) => void;
   let firstMessageReject: (error: unknown) => void;
