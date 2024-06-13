@@ -2,7 +2,6 @@
 
 import { build, stop } from "https://deno.land/x/esbuild@v0.20.0/mod.js";
 import { denoPlugins } from "https://deno.land/x/esbuild_deno_loader@0.9.0/mod.ts";
-import { ESBUILD_VERSION } from "../version.ts";
 
 const { outputFiles } = await build({
   entryPoints: [
@@ -17,7 +16,6 @@ const { outputFiles } = await build({
   legalComments: "eof",
   outdir: "/",
   banner: { js: `// deno-fmt-ignore-file\n// deno-lint-ignore-file` },
-  define: { ESBUILD_VERSION: `"${ESBUILD_VERSION}"` },
 });
 
 for (const file of ["mod.js", "worker.js"]) {
