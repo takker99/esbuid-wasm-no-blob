@@ -3,7 +3,7 @@
 /// <reference lib="deno.worker" />
 
 /** @license
- * esbuild-wasm@0.21.4
+ * esbuild-wasm@0.21.5
  *
  * MIT License
  *
@@ -20,4 +20,4 @@ import { ESBUILD_VERSION } from "./version.ts";
 //@ts-ignore let environmental variable
 globalThis.ESBUILD_VERSION = ESBUILD_VERSION;
 import "https://raw.githubusercontent.com/golang/go/go1.20.12/misc/wasm/wasm_exec.js";
-import "https://raw.githubusercontent.com/evanw/esbuild/v0.21.4/lib/shared/worker.ts";
+import "https://raw.githubusercontent.com/evanw/esbuild/v0.21.5/lib/shared/worker.ts";
