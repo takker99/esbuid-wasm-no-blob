@@ -1,1 +1,1 @@
-export const ESBUILD_VERSION = "0.21.5";
+export const ESBUILD_VERSION = "0.23.0";
