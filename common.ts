@@ -1,5 +1,5 @@
 // deno-lint-ignore-file prefer-const ban-types no-explicit-any no-empty no-unused-vars
-/** esbuild-wasm@0.23.0
+/** esbuild-wasm@0.24.0
  *
  * MIT License
  *
@@ -11,7 +11,7 @@
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.23.0/lib/shared/common.ts and modified below
+// This code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.24.0/lib/shared/common.ts and modified below
 // - $ deno fmt
 // - load the worker code from URL instead of an embedded code
 // - remove functions not worked in browser
@@ -1853,6 +1853,14 @@ let handlePlugins = async (
     id,
     request: protocol.OnStartRequest,
   ) => {
+    // Reset the "pluginData" map before each new build to avoid a memory leak.
+    // This is done before each new build begins instead of after each build ends
+    // because I believe the current API doesn't restrict when you can call
+    // "resolve" and there may be some uses of it that call it around when the
+    // build ends, and we don't want to accidentally break those use cases.
+
+    details.clear();
+
     let response: protocol.OnStartResponse = { errors: [], warnings: [] };
     await Promise.all(onStartCallbacks.map(async ({ name, callback, note }) => {
       try {
@@ -2189,6 +2197,7 @@ let handlePlugins = async (
 // even if the JavaScript objects aren't serializable. And we also avoid
 // the overhead of serializing large JavaScript objects.
 interface ObjectStash {
+  clear(): void;
   load(id: number): any;
   store(value: any): number;
 }
@@ -2197,6 +2206,9 @@ function createObjectStash(): ObjectStash {
   const map = new Map<number, any>();
   let nextID = 0;
   return {
+    clear() {
+      map.clear();
+    },
     load(id) {
       return map.get(id);
     },

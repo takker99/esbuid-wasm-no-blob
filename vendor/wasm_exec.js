@@ -1,6 +1,6 @@
 // deno-fmt-ignore-file
 // deno-lint-ignore-file
-// ported from https://raw.githubusercontent.om/golang/go/go1.22.5/misc/wasm/wasm_exec.js
+// ported from https://raw.githubusercontent.com/golang/go/refs/tags/go1.23.1/misc/wasm/wasm_exec.js
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
