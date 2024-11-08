@@ -16,6 +16,7 @@
 // - load the worker code from URL instead of an embedded code
 // - remove functions not worked in browser
 // - add underscore to unused variables
+// - remove `validateInitializeOptions`
 // - remove unused functions
 
 import type * as types from "./types.ts";
@@ -133,24 +134,6 @@ function checkForInvalidFlags(
       throw new Error(`Invalid option ${where}: ${quote(key)}`);
     }
   }
-}
-
-export function validateInitializeOptions(
-  options: types.InitializeOptions,
-): types.InitializeOptions {
-  let keys: OptionKeys = Object.create(null);
-  let wasmModule = getFlag(
-    options,
-    keys,
-    "wasmModule",
-    mustBeWebAssemblyModule,
-  );
-  let workerURL = getFlag(options, keys, "workerURL", mustBeStringOrURL)!;
-  checkForInvalidFlags(options, keys, "in initialize() call");
-  return {
-    wasmModule,
-    workerURL,
-  };
 }
 
 type MangleCache = Record<string, string | false>;
