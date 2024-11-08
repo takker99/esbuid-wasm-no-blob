@@ -1,4 +1,2 @@
-deno.lock
-mod.js
-worker.js
 .vscode
+docs/

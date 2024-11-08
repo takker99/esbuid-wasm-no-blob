@@ -1,5 +1,21 @@
 {
+  "name": "@takker/esbuild-wasm-no-blob",
+  "version": "0.0.0",
+  "exports": {
+    ".": "./mod.ts",
+    "./worker": "./worker.ts"
+  },
   "tasks": {
-    "build": "deno run --allow-write --allow-read --allow-net --allow-env --allow-run scripts/build.ts"
-  }
+    "fix": "deno fmt && deno lint --fix && deno check --remote mod.ts worker.ts && deno test --allow-read --doc --parallel --shuffle && deno publish --dry-run --allow-dirty",
+    "check": "deno fmt --check && deno lint && deno test --allow-read --doc --parallel --shuffle && deno publish --dry-run",
+    "coverage": "deno test --allow-read=./ --parallel --shuffle --coverage && deno coverage --html",
+    // from https://github.com/jsr-core/unknownutil/blob/v4.2.2/deno.jsonc#L84-L85
+    "update": "deno run --allow-env --allow-read --allow-write=. --allow-run=git,deno --allow-net=jsr.io,registry.npmjs.org jsr:@molt/cli",
+    "update:commit": "deno task -q update --commit --prefix deps: --pre-commit=fix",
+    "build": "deno run -A scripts/build.ts"
+  },
+  "exclude": [
+    "docs",
+    "coverage"
+  ]
 }
