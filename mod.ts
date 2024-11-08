@@ -76,7 +76,7 @@ export type {
 /**
  * the esbuild-wasm version this package is used
  */
-export const version: "0.23.0" = ESBUILD_VERSION;
+export const version: "0.24.0" = ESBUILD_VERSION;
 
 /**
  * This function invokes the "esbuild" command-line tool for you. It returns a
