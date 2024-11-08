@@ -1,5 +1,5 @@
 // deno-lint-ignore-file no-explicit-any prefer-const
-/** @license esbuild-wasm@0.23.0
+/** @license esbuild-wasm@0.24.0
  *
  * MIT License
  *
@@ -13,7 +13,7 @@
  */
 import { ESBUILD_VERSION } from "./version.ts";
 import "./vendor/wasm_exec.js";
-// The following code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.23.0/lib/shared/worker.ts
+// The following code is ported from https://raw.githubusercontent.com/evanw/esbuild/v0.24.0/lib/shared/worker.ts
 // Modifications:
 // - $ deno fmt
 // - Enable to load a wasm module as Response
